@@ -8,7 +8,7 @@ module mod_fits
   
   private
   
-  public :: readp_fits, writefits3D, roll_fits, unroll_fits
+  public :: readp_fits, writefits2D, writefits3D, roll_fits, unroll_fits
 
 contains
 
@@ -56,6 +56,38 @@ contains
   end subroutine unroll_fits
 
 
+  subroutine writefits2D(filename,fitmap,n1,n2)
+    
+    character(*),intent(in) :: filename
+    integer, intent(in) :: n1,n2 
+    real(KIND=4), dimension(n1,n2), intent(in) :: fitmap
+    
+    integer :: stat=0,uni=0,blocksize,group,fpixel,nelements,naxis,bitpix
+    logical :: simple,extend
+    integer, dimension(2) :: naxes
+    
+    stat=0
+    call ftgiou(uni,stat)
+    blocksize=1
+    call ftinit(uni,filename,blocksize,stat)
+    simple=.true.
+    bitpix=-32
+    naxis=2
+    naxes(1)=n1
+    naxes(2)=n2
+    extend=.true.
+    !
+    call ftphpr(uni,simple,bitpix,naxis,naxes,0,1,extend,stat)
+    group=1
+    fpixel=1
+    nelements=naxes(1)*naxes(2)
+    call ftppre(uni,group,fpixel,nelements,fitmap,stat)
+    call ftclos(uni, stat)
+    call ftfiou(uni, stat)
+    
+  end subroutine writefits2D
+  
+  
   subroutine writefits3D(filename,fitmap,n1,n2,n3)
     
     character(*),intent(in) :: filename

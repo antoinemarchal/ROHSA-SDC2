@@ -62,13 +62,13 @@ program ROHSA
   character(len=512) :: fileinit           !! name of the file with init last grid
   character(len=8)   :: init_option !!Init ROHSA with the mean or the std spectrum    
 
-  character(len=512) :: fileout_cat, fileout_cat_data !! name fitsfile output 
+  character(len=512) :: fileout_cat, fileout_cat_rms !! name fitsfile output 
 
   real(xp) :: start, finish
 
   real(xp), dimension(:,:,:), allocatable :: data,data2  !! initial fits data 
   real(xp), dimension(:,:,:), allocatable :: data_init   !! initial fits data 
-  real(xp), dimension(:,:), allocatable   :: std_cube    !! standard deviation map fo the cube is given by the user 
+  real(xp), dimension(:,:), allocatable   :: std_map     !! standard deviation map fo the cube is given by the user 
   real(xp), dimension(:), allocatable     :: params_init !! standard deviation map fo the cube is given by the user 
   real(xp), dimension(:,:,:), allocatable :: grid_params !! parameters to optimize at final step (dim of initial cube)
 
@@ -80,6 +80,7 @@ program ROHSA
   integer(kind=4), allocatable, dimension(:) :: fpix,lpix
 
   real(xp), dimension(:), allocatable :: mean_spect          !! mean spectrum of the observation
+  real(xp) :: mean_std=0._xp
 
   integer :: i, k
 
@@ -184,7 +185,8 @@ program ROHSA
      allocate(array(dim_array(1),dim_array(2),dim_array(3)))
      allocate(data(dim_array(3),dim_array(2),dim_array(1)))  
      allocate(mean_spect(dim_array(3)),params_init(3))
-     allocate(grid_params(3*n_gauss,dim_array(2),dim_array(1)))
+     allocate(grid_params(3*n_gauss,dim_array(2),dim_array(1))) !include noise map
+     allocate(std_map(2*dxy,2*dxy))
 
      !Load data
      print*,"Read FITS file data cube"
@@ -211,6 +213,10 @@ program ROHSA
      call readp_fits(filename,array,fpix,lpix)
      call roll_fits(array,data)
      dim_data = shape(data)
+
+     !Compute std map noise
+     call set_stdmap(std_map, data, lstd, ustd)
+     ! mean_std = mean_2D(std_map,2*dxy,2*dxy)
      
      !Normalize cube
      data = data * norm_cube
@@ -224,7 +230,7 @@ program ROHSA
      end if
      
      !Call ROHSA subroutine
-     call main_rohsa(grid_params, data, std_cube, fileout, timeout, n_gauss, lambda_amp, lambda_mu, lambda_sig, &
+     call main_rohsa(grid_params, data, std_map, fileout, timeout, n_gauss, lambda_amp, lambda_mu, lambda_sig, &
           lambda_var_amp, lambda_var_mu, lambda_var_sig, lambda_lym_sig, amp_fact_init, sig_init, lb_sig_init, &
           ub_sig_init, lb_sig, ub_sig, maxiter_init, maxiter, m, noise, regul, descent, lstd, ustd, init_option, &
           iprint, iprint_init, save_grid, lym, init_grid, fileinit, data_init, params_init, init_spec)  
@@ -236,11 +242,11 @@ program ROHSA
      
      !Write fits file
      fileout_cat = fileout(:len(trim(fileout))-5)//"_"//trim(str(k))//".fits"
-     fileout_cat_data = fileout(:len(trim(fileout))-5)//"_"//trim(str(k))//"_data.fits"
+     fileout_cat_rms = fileout(:len(trim(fileout))-5)//"_"//trim(str(k))//"_rms.fits"
      call writefits3D(fileout_cat,real(grid_params,kind=4),3*n_gauss,dim_data(2),dim_data(3))
-     ! call writefits3D(fileout_cat_data,array,dim_array(1),dim_array(2),dim_array(3))
+     call writefits2D(fileout_cat_rms,real(std_map,kind=4),2*dxy,2*dxy)
      
-18   deallocate(array,data, params_init, grid_params)
+18   deallocate(array,data,params_init,grid_params,std_map)
      deallocate(mean_spect)
      deallocate(fpix,lpix)
 
