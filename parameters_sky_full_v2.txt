@@ -8,7 +8,7 @@
    ,dxy = 8
    ,nl = 4000
    ,ns = 2500
-   ,nf = 2501
+   ,nf = 2600
    
    ,n_gauss = 1             !! number of gaussian to fit
 
