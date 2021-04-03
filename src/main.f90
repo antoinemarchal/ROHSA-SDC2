@@ -195,9 +195,11 @@ program ROHSA
      cx=x(k)+1; cy=y(k)+1; cv=f(k)+1
      !FIXME: Write condition if out of cube
      if (cv < dv) goto 18
-     if (cv > 6548) goto 18
      if (cx < dxy) goto 18
      if (cy < dxy) goto 18
+     if (cv > 6668-dv) goto 18 !FIXME
+     if (cx > 5851-dxy) goto 18
+     if (cy > 5851-dxy) goto 18
 
      fpix(1) = cx-dxy
      lpix(1) = cx+dxy-1
