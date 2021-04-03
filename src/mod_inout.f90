@@ -16,7 +16,7 @@ contains
        filename_init_spec, n_gauss, lambda_amp, lambda_mu, lambda_sig, lambda_var_amp, lambda_var_mu, lambda_var_sig, &
        lambda_lym_sig, amp_fact_init, sig_init, lb_sig_init, ub_sig_init, lb_sig, ub_sig, init_option, maxiter_init, &
        maxiter, m, noise, regul, descent, lstd, ustd, iprint, iprint_init, save_grid, lym, init_grid, fileinit, &
-       init_spec, dv, dxy, nl, norm_cube)
+       init_spec, dv, dxy, nl, ns, nf, norm_cube)
     implicit none
 
     integer :: ios=0
@@ -28,7 +28,7 @@ contains
     integer, intent(inout) :: lstd, ustd
     integer, intent(inout) :: iprint, iprint_init
     integer, intent(inout) :: maxiter, maxiter_init
-    integer, intent(inout) :: dxy, dv, nl
+    integer, intent(inout) :: dxy, dv, nl, ns, nf
     real(xp), intent(inout) :: lambda_amp, lambda_mu, lambda_sig
     real(xp), intent(inout) :: lambda_var_amp, lambda_var_mu, lambda_var_sig
     real(xp), intent(inout) :: lambda_lym_sig
@@ -53,7 +53,7 @@ contains
          n_gauss, lambda_amp, lambda_mu, lambda_sig, lambda_var_amp, lambda_var_mu, lambda_var_sig, lambda_lym_sig, &
          amp_fact_init, sig_init, lb_sig_init, ub_sig_init, lb_sig, ub_sig, init_option, maxiter_init, maxiter, m, &
          noise, regul, descent, lstd, ustd, iprint, iprint_init, save_grid, lym, init_grid, fileinit, init_spec, &
-         dv, dxy, nl, norm_cube
+         dv, dxy, nl, ns, nf, norm_cube
     
     open(unit=11, file=filename_parameters, status="old", iostat=ios)
     if (ios /= 0) stop "opening file error"

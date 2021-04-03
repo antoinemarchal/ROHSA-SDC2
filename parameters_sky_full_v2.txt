@@ -6,8 +6,10 @@
 
    ,dv = 110
    ,dxy = 8
-   ,nl = 5
-
+   ,nl = 4000
+   ,ns = 2000
+   ,nf = 2000
+   
    ,n_gauss = 1             !! number of gaussian to fit
 
    ,lambda_amp = 1.d0	    !! lambda for amplitude parameter

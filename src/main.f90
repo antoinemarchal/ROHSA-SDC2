@@ -29,7 +29,8 @@ program ROHSA
   integer :: maxiter         !! max iteration for L-BFGS-B alogorithm
   integer :: maxiter_init    !! max iteration for L-BFGS-B alogorithm (init mean spectrum)
 
-  integer :: nl !nline in cat SDC2
+  integer :: nl !nl = nline in cat SDC2
+  integer :: ns, nf
   integer :: dxy, dv, cx, cy, cv
   integer, dimension(3) :: dim_array, dim_data
 
@@ -61,7 +62,7 @@ program ROHSA
   character(len=512) :: fileinit           !! name of the file with init last grid
   character(len=8)   :: init_option !!Init ROHSA with the mean or the std spectrum    
 
-  character(len=512) :: fileout_cat !! name fitsfile output 
+  character(len=512) :: fileout_cat, fileout_cat_data !! name fitsfile output 
 
   real(xp) :: start, finish
 
@@ -90,6 +91,8 @@ program ROHSA
   !Default user parameters
   dxy = 8
   dv = 110
+  ns = 1
+  nf = 2
   n_gauss = 1
   lambda_amp = 1._xp
   lambda_mu = 1._xp
@@ -125,8 +128,8 @@ program ROHSA
        n_gauss, lambda_amp, lambda_mu, lambda_sig, lambda_var_amp, lambda_var_mu, lambda_var_sig, lambda_lym_sig, &
        amp_fact_init, sig_init, lb_sig_init, ub_sig_init, lb_sig, ub_sig, init_option, maxiter_init, maxiter, &
        m, noise, regul, descent, lstd, ustd, iprint, iprint_init, save_grid, lym, init_grid, fileinit, init_spec, &
-       dv, dxy, nl, norm_cube)
-
+       dv, dxy, nl, ns, nf, norm_cube)
+  
   !Call header
   call header()  
 
@@ -172,8 +175,11 @@ program ROHSA
   dim_array(2) = 2*dxy
   dim_array(3) = 2*dv
 
+  !Check if nf < nl
+  if (nf .ge. nl) stop ("nf must be lower than nl")
+
   !Start loop
-  do k=1, nl
+  do k=ns, nf
      !Allocate memory
      allocate(array(dim_array(1),dim_array(2),dim_array(3)))
      allocate(data(dim_array(3),dim_array(2),dim_array(1)))  
@@ -228,8 +234,9 @@ program ROHSA
      
      !Write fits file
      fileout_cat = fileout(:len(trim(fileout))-5)//"_"//trim(str(k))//".fits"
+     fileout_cat_data = fileout(:len(trim(fileout))-5)//"_"//trim(str(k))//"_data.fits"
      call writefits3D(fileout_cat,real(grid_params,kind=4),3*n_gauss,dim_data(2),dim_data(3))
-     ! call writefits3D(fileout_cat,array,dim_array(1),dim_array(2),dim_array(3))
+     call writefits3D(fileout_cat_data,array,dim_array(1),dim_array(2),dim_array(3))
      
 18   deallocate(array,data, params_init, grid_params)
      deallocate(mean_spect)
