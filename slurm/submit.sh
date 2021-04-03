@@ -10,13 +10,14 @@
 #SBATCH --partition=prepost
 #SBATCH --output=serial_%j.log # Standard output and error log
 
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/linkhome/rech/genler01/uzp41ct/ROHSA-SDC2/cfitsio-3.49
+pwd=$(pwd)
+
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$pwd/../ROHSA-SDC2/cfitsio-3.49
+export PATH=$PATH:$pwd/../ROHSA-SDC2/src
 
 date
 echo "Running ROHSA-SDC2 on a single CPU core"
-
-./../src/ROHSA-SDC2 ../parameters_sky_full_v2.txt 
-
+ROHSA-SDC2 $pwd/../parameters_sky_full_v2.txt 
 date
 
 
