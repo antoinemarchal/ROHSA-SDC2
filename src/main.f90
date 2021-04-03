@@ -236,7 +236,7 @@ program ROHSA
      fileout_cat = fileout(:len(trim(fileout))-5)//"_"//trim(str(k))//".fits"
      fileout_cat_data = fileout(:len(trim(fileout))-5)//"_"//trim(str(k))//"_data.fits"
      call writefits3D(fileout_cat,real(grid_params,kind=4),3*n_gauss,dim_data(2),dim_data(3))
-     call writefits3D(fileout_cat_data,array,dim_array(1),dim_array(2),dim_array(3))
+     ! call writefits3D(fileout_cat_data,array,dim_array(1),dim_array(2),dim_array(3))
      
 18   deallocate(array,data, params_init, grid_params)
      deallocate(mean_spect)
