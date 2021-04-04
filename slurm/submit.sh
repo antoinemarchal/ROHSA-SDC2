@@ -4,7 +4,7 @@
 #SBATCH --output=result.txt
 #
 #SBATCH --ntasks=1 # Run on a single CPU
-#SBATCH --time=00:10:00 # Time limit hrs:min:sec 
+#SBATCH --time=20:00:00 # Time limit hrs:min:sec 
 #SBATCH --mem-per-cpu=400 # Job memory request in Mo
 #
 #SBATCH --partition=prepost

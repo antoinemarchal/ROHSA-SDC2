@@ -6,9 +6,9 @@
 
    ,dv = 110    !! delta frequency of cutout
    ,dxy = 8     !! delta spatial axis of cutout
-   ,nl = 4000   !! number sources in catalogue
-   ,ns = 2535   !! start at position ns in catalogue
-   ,nf = 2545   !! end at position ns in catalogue
+   ,nl = 25734  !! number sources in catalogue
+   ,ns = 1      !! start at position ns in catalogue
+   ,nf = 5000   !! end at position ns in catalogue
    
    ,n_gauss = 1             !! number of gaussian to fit
 
