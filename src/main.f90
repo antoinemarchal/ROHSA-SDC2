@@ -204,7 +204,7 @@ program ROHSA
      allocate(array(dim_array(1),dim_array(2),dim_array(3)))
      allocate(data(dim_array(3),dim_array(2),dim_array(1)))  
      allocate(mean_spect(dim_array(3)),params_init(3))
-     allocate(grid_params(3*n_gauss,dim_array(2),dim_array(1))) !include noise map
+     allocate(grid_params(3*n_gauss,dim_array(2),dim_array(1)))
      allocate(std_map(2*dxy,2*dxy))
 
      !Load data
