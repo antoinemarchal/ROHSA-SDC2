@@ -149,7 +149,7 @@ contains
     call ftgkyj(uni,'NAXIS1',naxes(1),comment,stat)
     call ftgkyj(uni,'NAXIS2',naxes(2),comment,stat)
     call ftgkyj(uni,'NAXIS3',naxes(3),comment,stat)
-    write(*,*) 'Data is',naxes(1),'by',naxes(2),'by',naxes(3)
+    ! write(*,*) 'Data is',naxes(1),'by',naxes(2),'by',naxes(3)
     call ftclos(uni,stat)
       
     print*,'read the sub matrix :'

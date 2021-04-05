@@ -76,6 +76,11 @@ program ROHSA
   real(xp), dimension(:), allocatable  :: conf !!confiance
 
   !Parameters to read fits file
+  integer :: stat=0,uni=0,blocksize,naxes(3)
+  character(len=80) comment
+  character errtext*30
+  logical :: undef
+  
   real(kind=4), allocatable, dimension(:,:,:) :: array
   integer(kind=4), allocatable, dimension(:) :: fpix,lpix
 
@@ -179,6 +184,20 @@ program ROHSA
   !Check if nf < nl
   if (nf .ge. nl) stop ("nf must be lower than nl")
 
+  !Read dim full cube SDC2
+  call ftgiou(uni,stat)
+  if (stat .gt. 0) then
+     call ftgerr(stat,errtext)
+     print *,'FITSIO Error Status =',stat,': ',errtext
+     stop
+  end if
+  call ftdkopn(uni,filename,0,blocksize,stat)      
+  call ftgkyj(uni,'NAXIS1',naxes(1),comment,stat)
+  call ftgkyj(uni,'NAXIS2',naxes(2),comment,stat)
+  call ftgkyj(uni,'NAXIS3',naxes(3),comment,stat)
+  write(*,*) 'Data is',naxes(1),'by',naxes(2),'by',naxes(3)
+  call ftclos(uni,stat)
+
   !Start loop
   do k=ns, nf
      !Allocate memory
@@ -193,15 +212,15 @@ program ROHSA
      allocate(fpix(3), lpix(3))
      
      print*, "Position in cube = ", x(k),y(k),f(k)
-     ! cx=549+1; cy=438+1; cv=5736+1
      cx=x(k)+1; cy=y(k)+1; cv=f(k)+1
-     !FIXME: Write condition if out of cube
+     
+     !Check that cutout is in full cube
      if (cv < dv) goto 18
      if (cx < dxy) goto 18
      if (cy < dxy) goto 18
-     if (cv > 6668-dv) goto 18 !FIXME
-     if (cx > 5851-dxy) goto 18
-     if (cy > 5851-dxy) goto 18
+     if (cv > naxes(3)-dv) goto 18
+     if (cx > naxes(1)-dxy) goto 18
+     if (cy > naxes(2)-dxy) goto 18
 
      fpix(1) = cx-dxy
      lpix(1) = cx+dxy-1
