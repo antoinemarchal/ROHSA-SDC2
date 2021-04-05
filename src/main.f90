@@ -182,7 +182,7 @@ program ROHSA
   dim_array(3) = 2*dv
 
   !Check if nf < nl
-  if (nf .ge. nl) stop ("nf must be lower than nl")
+  if (nf .gt. nl) stop ("nf must be leq than nl")
 
   !Read dim full cube SDC2
   call ftgiou(uni,stat)
