@@ -140,10 +140,11 @@ program ROHSA
   call header()  
 
   !Load cat Benoit 
-  print*, "Read catalogue Benoit SDC2"
+  print*, "Read catalogue sources" 
+
   allocate(x(nl),y(nl),f(nl),conf(nl))
   call read_cat(filename_cat,x,y,f,conf,nl)
-  
+
   print*, "filename = '",trim(filename),"'"
 
   !Print params
