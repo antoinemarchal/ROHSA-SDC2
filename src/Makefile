@@ -5,9 +5,9 @@ FC=gfortran
 # GFLAGS=-Wall -Wextra -pedantic -std=f2008 -g -O2 -fno-second-underscore -Wno-compare-reals -fcheck=all -fimplicit-none -fbacktrace -gdwarf-2 -fall-intrinsics -Wno-unused-function -fcheck=bounds -I/usr/local/include -lcfitsio
 
 # GFLAGS= -O2 -I/usr/local/include -ffixed-line-length-none -Wno-uninitialized -Wall -fbounds-check
-GFLAGS= -O2 -I/usr/local/include -ffixed-line-length-none -lcfitsio -L../cfitsio-3.49
+GFLAGS= -O2 -I/usr/local/include -ffixed-line-length-none -lcfitsio #-L../cfitsio-3.49
 
-CFLAGS= -lm -g -O2 -lcfitsio -L../cfitsio-3.49 #-openmp -llapack
+CFLAGS= -lm -g -O2 -lcfitsio #-L../cfitsio-3.49 #-openmp -llapack
 
 OUT=ROHSA-SDC2
 
