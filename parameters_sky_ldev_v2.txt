@@ -1,14 +1,14 @@
 &user_parameters
-   filename = '/mnt/raid-cita/amarchal/SDC2/data/sky_ldev_v2.fits' !! name of the data file
-   ,fileout = '!/mnt/raid-cita/amarchal/SDC2/data/output/sky_ldev_v2.fits' !! name of the output file
+   filename = '/datartemix/ALMA/FITS/SKA/SDC2/sky_ldev_v2.fits' !! name of the data file
+   ,fileout = '!../output/sky_ldev_v2.fits' !! name of the output file
    ,timeout = 'timeout.dat'
-   ,filename_cat = '/mnt/raid-cita/amarchal/SDC2/data/sky_ldev_truthcat_v2_pix.txt' !! name cat Benoit SDC2
+   ,filename_cat = '../data/sky_ldev_truthcat_v2_pix.txt' !! name catalogue sources
 
    ,dv = 110    !! delta frequency of cutout
    ,dxy = 8     !! delta spatial axis of cutout
-   ,nl = 1000  !! number sources in catalogue
-   ,ns = 1   !! start at position ns in catalogue
-   ,nf = 1000   !! end at position ns in catalogue
+   ,nl = 1000   !! number sources in catalogue
+   ,ns = 1      !! start at position ns in catalogue
+   ,nf = 4      !! end at position ns in catalogue
    
    ,n_gauss = 1             !! number of gaussian to fit
 
@@ -20,10 +20,10 @@
    ,norm_cube = 1.e6        !! normalize cube to have values around unity
    ,amp_fact_init = 0.66d0  !! times max amplitude of additional Gaussian
    ,sig_init = 15.d0        !! dispersion of additional Gaussian
-   ,lb_sig_init = 5.d0      !! upper bound sigma init
-   ,ub_sig_init = 100.d0    !! upper bound sigma init
-   ,lb_sig = 5.d0           !! upper bound sigma
-   ,ub_sig = 100.d0         !! upper bound sigma
+   ,lb_sig_init = 1.d0      !! upper bound sigma init
+   ,ub_sig_init = 40.d0    !! upper bound sigma init
+   ,lb_sig = 1.d0           !! upper bound sigma
+   ,ub_sig = 40.d0         !! upper bound sigma
    ,init_option = "mean"    !! init ROHSA with the mean or the std spectrum	
    ,maxiter_init = 15000    !! max iteration for L-BFGS-B alogorithm (init mean spectrum)
    ,maxiter = 400           !! max iteration for L-BFGS-B alogorithm
