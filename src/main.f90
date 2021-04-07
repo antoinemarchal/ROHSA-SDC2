@@ -62,7 +62,7 @@ program ROHSA
   character(len=512) :: fileinit           !! name of the file with init last grid
   character(len=8)   :: init_option !!Init ROHSA with the mean or the std spectrum    
 
-  character(len=512) :: fileout_cat, fileout_cat_rms !! name fitsfile output 
+  character(len=512) :: fileout_cat, fileout_cat_rms, fileout_cat_data !! name fitsfile output 
 
   real(xp) :: start, finish
 
@@ -262,8 +262,10 @@ program ROHSA
      
      !Write fits file
      fileout_cat = fileout(:len(trim(fileout))-5)//"_"//trim(str(k))//".fits"
+     fileout_cat_data = fileout(:len(trim(fileout))-5)//"_"//trim(str(k))//"_data.fits"
      fileout_cat_rms = fileout(:len(trim(fileout))-5)//"_"//trim(str(k))//"_rms.fits"
      call writefits3D(fileout_cat,real(grid_params,kind=4),3*n_gauss,dim_data(2),dim_data(3))
+     call writefits3D(fileout_cat_data,real(array,kind=4),2*dv,2*dxy,2*dxy)
      call writefits2D(fileout_cat_rms,real(std_map,kind=4),2*dxy,2*dxy)
      
 18   deallocate(array,data,params_init,grid_params,std_map)
