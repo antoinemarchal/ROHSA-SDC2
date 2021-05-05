@@ -329,7 +329,7 @@ contains
 
   subroutine update(cube, params, b_params, n_gauss, dim_v, dim_y, dim_x, lambda_amp, lambda_mu, lambda_sig, &
        lambda_var_amp, lambda_var_mu, lambda_var_sig, lambda_lym_sig, lb_sig, ub_sig, maxiter, m, kernel, &
-       iprint, std_map, lym, c_lym)
+       iprint, std_map, lym, c_lym, rank, n_ranks)
     !! Update parameters (entire cube) using minimize function (here based on L-BFGS-B optimization module)
     implicit none
     
@@ -369,6 +369,7 @@ contains
     real(xp), dimension(:,:,:), allocatable :: lb_3D, ub_3D
     real(xp), dimension(:), allocatable :: lb, ub
     real(xp), dimension(:), allocatable :: beta
+    integer :: rank, n_ranks
 
     n_beta = (3*n_gauss * dim_y * dim_x) + n_gauss
 
@@ -392,8 +393,15 @@ contains
        beta((n_beta-n_gauss)+i) = b_params(i)
     end do
     
-    call minimize(n_beta, m, beta, lb, ub, cube, n_gauss, dim_v, dim_y, dim_x, lambda_amp, lambda_mu, lambda_sig, &
+    if (dim_x>=n_ranks.and.mod(dim_x,n_ranks)==0)then
+        print*,'dim_x',dim_x,'n_ranks',n_ranks, 'call minimize_mpi'
+        call minimize_mpi(n_beta, m, beta, lb, ub, cube, n_gauss, dim_v, dim_y, dim_x, lambda_amp, lambda_mu, lambda_sig, &
+         lambda_var_amp, lambda_var_mu, lambda_var_sig, lambda_lym_sig, maxiter, kernel, iprint, std_map, lym, c_lym, rank, n_ranks)
+    else
+        print*,'dim_x',dim_x,'n_ranks',n_ranks, 'call minimize'
+        call minimize(n_beta, m, beta, lb, ub, cube, n_gauss, dim_v, dim_y, dim_x, lambda_amp, lambda_mu, lambda_sig, &
          lambda_var_amp, lambda_var_mu, lambda_var_sig, lambda_lym_sig, maxiter, kernel, iprint, std_map, lym, c_lym)
+    endif
 
     call unravel_3D(beta, params, 3*n_gauss, dim_y, dim_x)
     do i=1,n_gauss

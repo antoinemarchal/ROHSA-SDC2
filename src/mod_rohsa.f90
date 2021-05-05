@@ -20,7 +20,7 @@ contains
   subroutine main_rohsa(grid_params, data, std_data, fileout, timeout, n_gauss, lambda_amp, lambda_mu, lambda_sig, &
        lambda_var_amp, lambda_var_mu, lambda_var_sig, lambda_lym_sig, amp_fact_init, sig_init, lb_sig_init, &
        ub_sig_init, lb_sig, ub_sig, maxiter_init, maxiter, m, noise, regul, descent, lstd, ustd, init_option, &
-       iprint, iprint_init, save_grid, lym, init_grid, fileinit, data_init, params_init, init_spec)
+       iprint, iprint_init, save_grid, lym, init_grid, fileinit, data_init, params_init, init_spec, rank, n_ranks)
     
     implicit none
     
@@ -100,6 +100,7 @@ contains
     integer :: i     !! loop index
     integer :: j     !! loop index
     integer :: k     !! loop index
+    integer :: rank, n_ranks
         
     print*, " "
 
@@ -269,7 +270,7 @@ contains
                    print*,  "Update level", n, ">", power
                    call update(cube_mean, fit_params, b_params, n_gauss, dim_cube(1), power, power, lambda_amp, lambda_mu, &
                         lambda_sig, lambda_var_amp, lambda_var_mu, lambda_var_sig, lambda_lym_sig, lb_sig, ub_sig, maxiter, &
-                        m, kernel, iprint, std_map, lym, c_lym)        
+                        m, kernel, iprint, std_map, lym, c_lym, rank, n_ranks)        
                    deallocate(std_map)
                 end if
              end if
@@ -351,7 +352,7 @@ contains
     if (regul .eqv. .true.) then
        call update(data, grid_params, b_params, n_gauss, dim_data(1), dim_data(2), dim_data(3), lambda_amp, lambda_mu, &
             lambda_sig, lambda_var_amp, lambda_var_mu, lambda_var_sig, lambda_lym_sig, lb_sig, ub_sig, maxiter, m, &
-            kernel, iprint, std_map, lym, c_lym)      
+            kernel, iprint, std_map, lym, c_lym, rank, n_ranks)      
     end if
     
     print*, " "

@@ -5,10 +5,11 @@ module mod_optimize
   use mod_array
 
   implicit none
-  
+  include "mpif.h"
+    
   private
 
-  public :: gaussian, myfunc_spec, myresidual, mygrad_spec, f_g_cube_fast
+  public :: gaussian, myfunc_spec, myresidual, mygrad_spec, f_g_cube_fast, f_g_cube_fast_mpi
   
 contains
   
@@ -217,7 +218,9 @@ contains
                         * (residual(k,j,l)/std_map(j,l)**2._xp) 
 
                    deriv(3+(3*(i-1)),j,l) = deriv(3+(3*(i-1)),j,l) + (params(1+(3*(i-1)),j,l) * &
-                        ( real(k,xp) - params(2+(3*(i-1)),j,l) )**2._xp / (params(3+(3*(i-1)),j,l)**3._xp) * &
+!                        ( real(k,xp) - params(2+(3*(i-1)),j,l) )**2._xp / (params(3+(3*(i-1)),j,l)**3._xp) * &
+                        ( real(k,xp) - params(2+(3*(i-1)),j,l) )**2._xp / &
+                        (params(3+(3*(i-1)),j,l)*params(3+(3*(i-1)),j,l)*params(3+(3*(i-1)),j,l)) * &
                         exp( ( -(real(k,xp) - params(2+(3*(i-1)),j,l))**2._xp) / (2._xp * params(3+(3*(i-1)),j,l)**2._xp))) &
                         * (residual(k,j,l)/std_map(j,l)**2._xp)
                 end if
@@ -244,6 +247,196 @@ contains
 
   end subroutine f_g_cube_fast
 
+  subroutine f_g_cube_fast_mpi(f, g, cube, beta, dim_v, dim_y, dim_x, n_gauss, kernel, lambda_amp, lambda_mu, lambda_sig, &
+       lambda_var_amp, lambda_var_mu, lambda_var_sig, std_map, rank, n_ranks)
+    implicit none
+!    include "mpif.h"
+
+    integer, intent(in) :: n_gauss
+    integer, intent(in) :: dim_v, dim_y, dim_x
+    real(xp), intent(in) :: lambda_amp, lambda_mu, lambda_sig
+    real(xp), intent(in) :: lambda_var_amp, lambda_var_mu, lambda_var_sig
+    real(xp), intent(in), dimension(:), allocatable :: beta
+    real(xp), intent(in), dimension(:,:,:), allocatable :: cube
+    real(xp), intent(in), dimension(:,:), allocatable :: kernel
+    real(xp), intent(in), dimension(:,:), allocatable :: std_map
+    real(xp), intent(inout) :: f
+    real(xp), intent(inout), dimension(:), allocatable :: g
+
+    integer :: i, j, k, l
+    integer :: n_beta
+    real(xp), dimension(:,:,:), allocatable :: residual
+    real(xp), dimension(:), allocatable :: residual_1D
+    real(xp), dimension(:,:,:), allocatable :: params
+    real(xp), dimension(:), allocatable :: b_params
+    real(xp), dimension(:,:), allocatable :: conv_amp, conv_mu, conv_sig
+    real(xp), dimension(:,:), allocatable :: conv_conv_amp, conv_conv_mu, conv_conv_sig
+    real(xp), dimension(:,:), allocatable :: image_amp, image_mu, image_sig
+    real(xp), dimension(:,:,:), allocatable :: deriv
+    real(xp), dimension(:), allocatable :: model
+    real(xp) :: gauss
+
+    integer :: iwork1, iwork2, ista, iend, rank, n_ranks, ierr, nd_proc, np_proc
+    real(xp) :: sf
+    real(xp) :: sg
+    integer, dimension(n_ranks) :: idisp,recvcounts
+!       ! Call MPI_Init
+!       call MPI_Init(ierr)
+!       ! Get my rank and the total number of ranks
+!       call MPI_Comm_rank(MPI_COMM_WORLD,rank,ierr)
+!       call MPI_Comm_size(MPI_COMM_WORLD,n_ranks,ierr)
+     iwork1 = dim_x/n_ranks
+     !print*,'iwork1=',iwork1
+     iwork2 = MOD(dim_x, n_ranks)
+     !print*,'iwork2=',iwork2
+     ista = rank* iwork1 + 1 + MIN(rank, iwork2)
+     iend = ista + iwork1 -1
+     if ( iwork2 > rank) then 
+        iend = iend + 1
+     endif
+!     print*,'rank=',rank,'ista=',ista,'iend=',iend
+
+!      idisp(rank+1)=ista
+!      recvcounts(rank+1)=(iend-ista+1)
+
+    allocate(deriv(3*n_gauss, dim_y, dim_x))
+    allocate(residual(dim_v, dim_y, dim_x))
+    allocate(b_params(n_gauss))
+    allocate(params(3*n_gauss, dim_y, dim_x))
+    allocate(conv_amp(dim_y, dim_x), conv_mu(dim_y, dim_x), conv_sig(dim_y, dim_x))
+    allocate(conv_conv_amp(dim_y, dim_x), conv_conv_mu(dim_y, dim_x), conv_conv_sig(dim_y, dim_x))
+    allocate(image_amp(dim_y, dim_x), image_mu(dim_y, dim_x), image_sig(dim_y, dim_x))
+    allocate(model(dim_v))
+    
+    deriv = 0._xp
+    f = 0._xp
+    g = 0._xp
+    residual = 0._xp    
+    params = 0._xp
+    model = 0._xp
+    gauss = 0._xp
+    
+    n_beta = (3*n_gauss * dim_y * dim_x) + n_gauss
+
+    call unravel_3D(beta, params, 3*n_gauss, dim_y, dim_x)    
+    do i=1,n_gauss
+       b_params(i) = beta((n_beta-n_gauss)+i)
+    end do
+
+    ! Compute the objective function and the gradient
+!    do j=1, dim_x
+    do j=ista, iend ! parallelized with MPI
+       do i=1, dim_y
+          allocate(residual_1D(dim_v))
+          residual_1D = 0._xp
+          call myresidual(params(:,i,j), cube(:,i,j), residual_1D, n_gauss, dim_v)
+          residual(:,i,j) = residual_1D
+          if (std_map(i,j) > 0._xp) then
+             f = f + (myfunc_spec(residual_1D)/std_map(i,j)**2._xp)
+          end if
+          deallocate(residual_1D)
+       end do
+    end do
+
+    ! Compute the objective function and the gradient
+    do i=1, n_gauss
+       !
+       conv_amp = 0._xp; conv_mu = 0._xp; conv_sig = 0._xp
+       conv_conv_amp = 0._xp; conv_conv_mu = 0._xp; conv_conv_sig = 0._xp
+       image_amp = 0._xp; image_mu = 0._xp; image_sig = 0._xp
+       
+       image_amp = params(1+(3*(i-1)),:,:)
+       image_mu = params(2+(3*(i-1)),:,:)
+       image_sig = params(3+(3*(i-1)),:,:)
+       
+       call convolution_2D_mirror(image_amp, conv_amp, dim_y, dim_x, kernel, 3)
+       call convolution_2D_mirror(image_mu, conv_mu, dim_y, dim_x, kernel, 3)
+       call convolution_2D_mirror(image_sig, conv_sig, dim_y, dim_x, kernel, 3)
+       
+       call convolution_2D_mirror(conv_amp, conv_conv_amp, dim_y, dim_x, kernel, 3)
+       call convolution_2D_mirror(conv_mu, conv_conv_mu, dim_y, dim_x, kernel, 3)
+       call convolution_2D_mirror(conv_sig, conv_conv_sig, dim_y, dim_x, kernel, 3)
+
+       do l=ista, iend ! parallelized with MPI
+!       do l=1, dim_x
+          do j=1, dim_y
+             !Regularization
+             f = f + (0.5_xp * lambda_amp * conv_amp(j,l)**2)
+             f = f + (0.5_xp * lambda_mu * conv_mu(j,l)**2)
+             f = f + (0.5_xp * lambda_sig * conv_sig(j,l)**2) + (0.5_xp * lambda_var_sig * (image_sig(j,l) - b_params(i))**2._xp)
+             
+             g((n_beta-n_gauss)+i) = g((n_beta-n_gauss)+i) - (lambda_var_sig * (image_sig(j,l) - b_params(i)))        
+             
+             !
+             do k=1, dim_v                          
+                if (std_map(j,l) > 0._xp) then
+                   deriv(1+(3*(i-1)),j,l) = deriv(1+(3*(i-1)),j,l) + (exp( ( -(real(k,xp) - params(2+(3*(i-1)),j,l))**2._xp) &
+                        / (2._xp * params(3+(3*(i-1)),j,l)**2._xp))) &
+                        * (residual(k,j,l)/std_map(j,l)**2._xp) 
+
+                   deriv(2+(3*(i-1)),j,l) = deriv(2+(3*(i-1)),j,l) + (params(1+(3*(i-1)),j,l) * &
+                        ( real(k,xp) - params(2+(3*(i-1)),j,l) ) / (params(3+(3*(i-1)),j,l)**2._xp) * &
+                        exp( ( -(real(k,xp) - params(2+(3*(i-1)),j,l))**2._xp) &
+                        / (2._xp * params(3+(3*(i-1)),j,l)**2._xp))) &
+                        * (residual(k,j,l)/std_map(j,l)**2._xp) 
+
+                   deriv(3+(3*(i-1)),j,l) = deriv(3+(3*(i-1)),j,l) + (params(1+(3*(i-1)),j,l) * &
+!                        ( real(k,xp) - params(2+(3*(i-1)),j,l) )**2._xp / (params(3+(3*(i-1)),j,l)**3._xp) * &
+                        ( real(k,xp) - params(2+(3*(i-1)),j,l) )**2._xp / &
+                        (params(3+(3*(i-1)),j,l)*params(3+(3*(i-1)),j,l)*params(3+(3*(i-1)),j,l)) * &
+                        exp( ( -(real(k,xp) - params(2+(3*(i-1)),j,l))**2._xp) / (2._xp * params(3+(3*(i-1)),j,l)**2._xp))) &
+                        * (residual(k,j,l)/std_map(j,l)**2._xp)
+                end if
+             end do
+
+             deriv(1+(3*(i-1)),j,l) = deriv(1+(3*(i-1)),j,l) + (lambda_amp * conv_conv_amp(j,l))
+             deriv(2+(3*(i-1)),j,l) = deriv(2+(3*(i-1)),j,l) + (lambda_mu * conv_conv_mu(j,l))
+             deriv(3+(3*(i-1)),j,l) = deriv(3+(3*(i-1)),j,l) + (lambda_sig * conv_conv_sig(j,l) + &
+                  (lambda_var_sig * (image_sig(j,l) - b_params(i))))
+          end do
+          !
+       end do
+!       print*,'f before reduce',f
+!       call MPI_REDUCE(f, sf, 1, MPI_DOUBLE_PRECISION,MPI_SUM, 0,MPI_COMM_WORLD, ierr)
+       call MPI_ALLREDUCE(f, sf, 1, MPI_DOUBLE_PRECISION,MPI_SUM, MPI_COMM_WORLD, ierr)
+       f=sf
+!       print*,'f after reduce',f
+       call MPI_ALLREDUCE(g((n_beta-n_gauss)+i), sg, 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ierr)
+       g((n_beta-n_gauss)+i)=sg
+
+       nd_proc=dim_y*(iend-ista+1)
+!       print*,'rank=',rank,'ista=',ista,'iend=',iend
+
+ !      print*,'before','rank=',rank, 'deriv(1,1,1)',deriv(1,1,1), 'deriv(1,1,2)',deriv(1,1,2)!, 'deriv(1,1,3)',&
+               !deriv(1,1,3), 'deriv(1,1,4)',deriv(1,1,4)
+       call MPI_ALLGATHER(deriv(1+(3*(i-1)),:,ista:iend), nd_proc, MPI_DOUBLE_PRECISION, deriv(1+(3*(i-1)),:,:), & 
+                       nd_proc, MPI_DOUBLE_PRECISION, MPI_COMM_WORLD, ierr)
+
+! MPI_ALLGATHERV instead of MPI_ALLGATHER, allows the messages received to have different lengths 
+! and be stored at arbitrary locations in the receive buffer
+       !call MPI_ALLGATHERV(deriv(1+(3*(i-1)),j,ista:iend), (iend-ista+1), MPI_DOUBLE_PRECISION, &
+!                           deriv(1+(3*(i-1)),j,:), recvcounts,idisp,MPI_DOUBLE_PRECISION, MPI_COMM_WORLD, ierr)
+!       print*,'after','rank=',rank, 'deriv(1,1,1)',deriv(1,1,1), 'deriv(1,1,2)',deriv(1,1,2)!, 'deriv(1,1,3)',&
+               !deriv(1,1,3), 'deriv(1,1,4)',deriv(1,1,4)
+       call MPI_ALLGATHER(deriv(2+(3*(i-1)),:,ista:iend), nd_proc, MPI_DOUBLE_PRECISION, deriv(2+(3*(i-1)),:,:), & 
+                       nd_proc, MPI_DOUBLE_PRECISION, MPI_COMM_WORLD, ierr)
+       call MPI_ALLGATHER(deriv(3+(3*(i-1)),:,ista:iend), nd_proc, MPI_DOUBLE_PRECISION, deriv(3+(3*(i-1)),:,:), & 
+                       nd_proc, MPI_DOUBLE_PRECISION, MPI_COMM_WORLD, ierr)
+    end do
+!    print*,'deriv(1,1,1)',deriv(1,1,1),'deriv(2,1,1)',deriv(2,1,1),'deriv(3,1,1)',deriv(3,1,1)
+
+    call ravel_3D(deriv, g, 3*n_gauss, dim_y, dim_x)
+
+    deallocate(deriv)
+    deallocate(residual)
+    deallocate(b_params)
+    deallocate(params)
+    deallocate(conv_amp, conv_mu, conv_sig)
+    deallocate(conv_conv_amp, conv_conv_mu, conv_conv_sig)
+    deallocate(image_amp, image_mu, image_sig)
+
+ !      call MPI_FINALIZE(ierr) 
+  end subroutine f_g_cube_fast_mpi
 
  ! Compute the objective function for a cube and the gradient of the obkective function
   subroutine f_g_cube(f, g, cube, beta, dim_v, dim_y, dim_x, n_gauss, kernel, lambda_amp, lambda_mu, lambda_sig, &

@@ -9,8 +9,9 @@ program ROHSA
   use mod_array
   use mod_fits
   use mod_convert
-  
+
   implicit none
+  include "mpif.h"
 
   logical :: noise           !! if false --> STD map computed by ROHSA with lstd and ustd (if true given by the user)
   logical :: regul           !! if true --> activate regulation
@@ -88,6 +89,13 @@ program ROHSA
   real(xp) :: mean_std=0._xp
 
   integer :: i, k
+  integer :: ierr, rank, n_ranks
+
+  ! Call MPI_Init
+  call MPI_Init(ierr)
+  ! Get my rank and the total number of ranks
+  call MPI_Comm_rank(MPI_COMM_WORLD,rank,ierr)
+  call MPI_Comm_size(MPI_COMM_WORLD,n_ranks,ierr)
 
   call cpu_time(start)
 
@@ -253,7 +261,7 @@ program ROHSA
      call main_rohsa(grid_params, data, std_map, fileout, timeout, n_gauss, lambda_amp, lambda_mu, lambda_sig, &
           lambda_var_amp, lambda_var_mu, lambda_var_sig, lambda_lym_sig, amp_fact_init, sig_init, lb_sig_init, &
           ub_sig_init, lb_sig, ub_sig, maxiter_init, maxiter, m, noise, regul, descent, lstd, ustd, init_option, &
-          iprint, iprint_init, save_grid, lym, init_grid, fileinit, data_init, params_init, init_spec)  
+          iprint, iprint_init, save_grid, lym, init_grid, fileinit, data_init, params_init, init_spec, rank, n_ranks)
      
      !Unnomalize amplitude
      do i=1, n_gauss
@@ -278,5 +286,6 @@ program ROHSA
   call ender()
   call cpu_time(finish)
   print '("Time = ",f6.3," seconds.")',finish-start
+  call MPI_FINALIZE(ierr)
    
 end program ROHSA
