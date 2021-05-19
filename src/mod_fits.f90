@@ -26,7 +26,7 @@ contains
     do k=1,dim_array(3)
        do j=1,dim_array(2)
           do i=1,dim_array(1)
-             rolled(k,i,j) = real(array(i,j,k),xp)
+             rolled(k,j,i) = real(array(i,j,k),xp)
           end do
        end do
     end do
@@ -45,10 +45,10 @@ contains
     dim_array = shape(array)
 
     !Roll 3d array and make it real xp
-    do k=1,dim_array(3)
+    do k=1,dim_array(1)
        do j=1,dim_array(2)
-          do i=1,dim_array(1)
-             unrolled(i,j,k) = real(array(k,i,j),kind(4))
+          do i=1,dim_array(3)
+             unrolled(i,j,k) = real(array(k,j,i),kind(4))
           end do
        end do
     end do
