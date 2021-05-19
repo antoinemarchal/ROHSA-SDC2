@@ -396,11 +396,6 @@ contains
           end do
           !
        end do
-!       print*,'f before reduce',f
-!       call MPI_REDUCE(f, sf, 1, MPI_DOUBLE_PRECISION,MPI_SUM, 0,MPI_COMM_WORLD, ierr)
-       call MPI_ALLREDUCE(f, sf, 1, MPI_DOUBLE_PRECISION,MPI_SUM, MPI_COMM_WORLD, ierr)
-       f=sf
-!       print*,'f after reduce',f
        call MPI_ALLREDUCE(g((n_beta-n_gauss)+i), sg, 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ierr)
        g((n_beta-n_gauss)+i)=sg
 
@@ -423,7 +418,11 @@ contains
        call MPI_ALLGATHER(deriv(3+(3*(i-1)),:,ista:iend), nd_proc, MPI_DOUBLE_PRECISION, deriv(3+(3*(i-1)),:,:), & 
                        nd_proc, MPI_DOUBLE_PRECISION, MPI_COMM_WORLD, ierr)
     end do
-!    print*,'deriv(1,1,1)',deriv(1,1,1),'deriv(2,1,1)',deriv(2,1,1),'deriv(3,1,1)',deriv(3,1,1)
+!   print*,'f before reduce',f
+!   call MPI_REDUCE(f, sf, 1, MPI_DOUBLE_PRECISION,MPI_SUM, 0,MPI_COMM_WORLD, ierr)
+    call MPI_ALLREDUCE(f, sf, 1, MPI_DOUBLE_PRECISION,MPI_SUM, MPI_COMM_WORLD, ierr)
+    f=sf
+!   print*,'f after reduce',f
 
     call ravel_3D(deriv, g, 3*n_gauss, dim_y, dim_x)
 
